@@ -1,12 +1,13 @@
 import Head from 'next/head'
 import styles from '../styles/Home.module.css'
 import Dosbox, {DosboxRef} from "../components/dosbox";
-import {useRef} from "react";
+import {useEffect, useRef} from "react";
+import {gameNamePbemCursorOff, gameNamePbemCursorOn, nameEric, savePbem} from '../components/crops';
 
 export default function Home() {
     const dosref = useRef<DosboxRef>(null);
 
-    function onClickNew() {
+    async function onClickNew() {
         // P (hits Print to close the menu if open, nop if menu is not open)
         // Alt
         // F (file menu) (already open at game launch)
@@ -15,8 +16,24 @@ export default function Home() {
         // O (OK)
         // M (play over modem)
         // O (OK)
-        dosref.current.sendStrokes([':p', 'alt', ':fnuomo']);
+        await dosref.current.sendStrokes([':p', 'alt', ':fnuomo']);
+        await dosref.current.watchForImage(nameEric)
+        await dosref.current.sendStrokes(['enter', ':foo', 'enter']);
     }
+
+    const syncSaves = async function() {
+        await dosref.current.watchForImage(savePbem)
+        if (!dosref.current.hasImage(gameNamePbemCursorOff) && !dosref.current.hasImage(gameNamePbemCursorOn)) {
+            // type filename, since it's not filled in already
+            await dosref.current.sendStrokes([':game'])
+        }
+        await dosref.current.sendStrokes(['enter', 'enter', ':p']);
+        await syncSaves()
+    }
+
+    useEffect(() => {
+        syncSaves().catch(console.error)
+    }, []);
 
     return (
         <div className={styles.container}>

@@ -2,15 +2,26 @@ import React, {useEffect, useImperativeHandle, useRef, useState} from "react";
 import type {DosFactory, DosRuntime} from 'js-dos';
 import {DosCommandInterface} from "js-dos/dist/typescript/js-dos-ci";
 import ScreenshotTool from "./ScreenshotTool";
+import {toBase64} from "./crops";
 
 export type DosboxRef = {
-    sendStrokes: (strokes: string[]) => Promise<void>
+    sendStrokes: (strokes: string[]) => Promise<void>,
+    watchForImage: (image: WatchImage, interval?: number) => Promise<void>
+    hasImage: (image: WatchImage) => boolean
 }
 
 type DosboxProps = {
     variant?: string,
     zip: string,
     exe: string
+}
+
+type WatchImage = {
+    sx: number,
+    sy: number,
+    sw: number,
+    sh: number,
+    imageData: string
 }
 
 const sleep = millis => new Promise(cb => setTimeout(cb, millis))
@@ -32,7 +43,8 @@ const toKeyCodes = (strokes: string[]) => {
             "up": 38,
             "right": 39,
             "down": 40,
-            "alt": 18
+            "alt": 18,
+            "enter": 13
         };
         const manualCode: number = manualMap[command.toLowerCase()]
         if (manualCode) return [manualCode];
@@ -76,9 +88,21 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
         }
     }
 
-    useImperativeHandle(ref, () => ({
-        sendStrokes
-    }))
+    const hasImage = function (image: WatchImage) {
+        const canvasCtx = canvasRef.current.getContext('2d')
+        const screenshot = toBase64(canvasCtx.getImageData(image.sx, image.sy, image.sw, image.sh))
+        return screenshot === image.imageData
+    }
+
+    const watchForImage = async function (image: WatchImage, interval = 64) {
+        let matched = false
+        while (!matched) {
+            await sleep(interval)
+            matched = hasImage(image)
+        }
+    }
+
+    useImperativeHandle(ref, () => ({sendStrokes, watchForImage, hasImage}))
 
     useEffect(() => {
         setup(canvasRef.current).catch(() => setError(true));
