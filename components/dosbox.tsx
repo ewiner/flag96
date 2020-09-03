@@ -1,6 +1,7 @@
 import React, {useEffect, useImperativeHandle, useRef, useState} from "react";
 import type {DosFactory, DosRuntime} from 'js-dos';
 import {DosCommandInterface} from "js-dos/dist/typescript/js-dos-ci";
+import ScreenshotTool from "./ScreenshotTool";
 
 export type DosboxRef = {
     sendStrokes: (strokes: string[]) => Promise<void>
@@ -56,6 +57,7 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
         runtime.current = await Dos(canvas, {
             wdosboxUrl: `/dosbox/${variant}.js`,
             autolock: true,
+            keyboardListeningElement: canvas
         });
         await runtime.current.fs.extract(props.zip, "/game");
         await runtime.current.fs.chdir("/game");
@@ -83,17 +85,20 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
 
         return () => {
             if (dosapp.current) {
-                const canvasCtx = canvasRef.current.getContext("2d");
-                console.log(canvasCtx.getImageData(canvasRef.current.width, canvasRef.current.height, -1, -1).data);
                 dosapp.current.exit();
             }
         }
     }, [canvasRef]);
 
     return isError ? <span>Error!</span> : (
-        // The dosbox-container keeps dosbox.js from messing up the DOM in a way that breaks React unloading the component.
-        <div className="dosbox-container">
-            <canvas ref={canvasRef}/>
+        <div>
+            {/* The dosbox-container keeps dosbox.js from messing up the DOM in a way that breaks React unloading the component.*/}
+            <div className="dosbox-container">
+                {/* See https://github.com/caiiiycuk/js-dos/issues/94#issuecomment-686199565 */}
+                <canvas ref={canvasRef} tabIndex={0} onClick={event => (event.target as HTMLCanvasElement).focus()}/>
+            </div>
+            <button type="button" onClick={() => dosapp.current.fullscreen()}>Fullscreen</button>
+            <ScreenshotTool sourceCanvas={canvasRef}/>
         </div>
     );
 });
