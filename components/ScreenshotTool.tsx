@@ -1,4 +1,5 @@
 import React, {Dispatch, MutableRefObject, SetStateAction, useEffect, useRef, useState} from "react";
+import {toBase64} from "./crops";
 
 type Props = {
     sourceCanvas: MutableRefObject<HTMLCanvasElement>
@@ -8,6 +9,7 @@ const ScreenshotTool = (props: Props) => {
     const {sourceCanvas} = props
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [visible, setVisible] = useState(false)
     const [screenshot, setScreenshot] = useState({
         dataUrl: null as string,
         imageData: null as ImageData
@@ -40,16 +42,17 @@ const ScreenshotTool = (props: Props) => {
 
     const copyImageData = () => {
         const ctx = canvasRef.current.getContext('2d')
-        const imageData = Array.from(ctx.getImageData(0 ,0, sw, sh).data)
-        const jsData = {sx, sy, sw, sh, imageData}
+        const imageData = ctx.getImageData(0, 0, sw, sh)
+        const jsData = {sx, sy, sw, sh, imageData: toBase64(imageData)}
         navigator.clipboard.writeText(JSON.stringify(jsData))
     }
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d')
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-        if (screenshot.imageData) {
+        if (screenshot.imageData && canvas) {
+            const ctx = canvas.getContext('2d')
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+
             let newData = []
             for (let row = sy; row < sy + sh; row++) {
                 const left = (screenshot.imageData.width * row) + sx
@@ -60,25 +63,30 @@ const ScreenshotTool = (props: Props) => {
                 const croppedImage = new ImageData(new Uint8ClampedArray(newData), sw, sh)
                 ctx.putImageData(croppedImage, 0, 0)
             } else {
-                console.warn(`Cropped image ended up with ${newData.length/4} data points.`)
+                console.warn(`Cropped image ended up with ${newData.length / 4} data points.`)
             }
         }
     }, [sx, sy, sw, sh, screenshot])
 
     return (
         <fieldset>
-            <legend>Analyze Screenshot</legend>
-            <button type="button" onClick={onClickScreenshot}>Capture</button>{" "}
-            {editors.map(([name, value, setter]) =>
-                <label key={name}>
-                    {name} <input type="number" value={value} onChange={evt => setter(evt.target.valueAsNumber)}/>
-                </label>)}{" "}
-            <button type="reset" onClick={resetEditors}>Reset</button>{" "}
-            <button type="button" onClick={copyImageData}>Copy ImageData</button>{" "}
-            <br/>
-            <a href={screenshot.dataUrl} download={`ctf-screenshot-${Date.now()}.png`}>
-                <canvas ref={canvasRef} width={640} height={480}/>
-            </a>
+            <legend onClick={() => setVisible(v => !v)}>Analyze Screenshot</legend>
+            {!visible ? null : <>
+                <button type="button" onClick={onClickScreenshot}>Capture</button>
+                {" "}
+                {editors.map(([name, value, setter]) =>
+                    <label key={name}>
+                        {name} <input type="number" value={value} onChange={evt => setter(evt.target.valueAsNumber)}/>
+                    </label>)}{" "}
+                <button type="reset" onClick={resetEditors}>Reset</button>
+                {" "}
+                <button type="button" onClick={copyImageData}>Copy ImageData</button>
+                {" "}
+                <br/>
+                <a href={screenshot.dataUrl} download={`ctf-screenshot-${Date.now()}.png`}>
+                    <canvas ref={canvasRef} width={sw} height={sh}/>
+                </a>
+            </>}
         </fieldset>
     );
 }
