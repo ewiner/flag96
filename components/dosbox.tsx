@@ -55,8 +55,6 @@ const toKeyCodes = (strokes: string[]) => {
 const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
     const {variant = "wdosbox"} = props;
 
-    const dos = useRef<DosFactory>(null);
-    const runtime = useRef<DosRuntime>(null);
     const dosapp = useRef<DosCommandInterface>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -65,15 +63,15 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
     const setup = async function (canvas: HTMLCanvasElement) {
         await import('js-dos'); // attaches `window.Dos`
         const Dos = (window as any).Dos as DosFactory;
-        dos.current = Dos;
-        runtime.current = await Dos(canvas, {
+        const options = {
             wdosboxUrl: `/dosbox/${variant}.js`,
             autolock: true,
             keyboardListeningElement: canvas
-        });
-        await runtime.current.fs.extract(props.zip, "/game");
-        await runtime.current.fs.chdir("/game");
-        dosapp.current = await runtime.current.main(["-c", "cd game", "-c", props.exe]);
+        };
+        const runtime = await Dos(canvas, options);
+        await runtime.fs.extract(props.zip, "/game");
+        await runtime.fs.chdir("/game");
+        dosapp.current = await runtime.main(["-c", "cd game", "-c", props.exe]);
     };
 
     const sendStrokes = async function (strokes: string[]) {
@@ -105,7 +103,10 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
     useImperativeHandle(ref, () => ({sendStrokes, watchForImage, hasImage}))
 
     useEffect(() => {
-        setup(canvasRef.current).catch(() => setError(true));
+        setup(canvasRef.current).catch((error) => {
+            console.error(error)
+            setError(true)
+        });
 
         return () => {
             if (dosapp.current) {
@@ -114,7 +115,7 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
         }
     }, [canvasRef]);
 
-    return isError ? <span>Error!</span> : (
+    return isError ? <span style={{color: "red"}}>Error!</span> : (
         <div>
             {/* The dosbox-container keeps dosbox.js from messing up the DOM in a way that breaks React unloading the component.*/}
             <div className="dosbox-container">
