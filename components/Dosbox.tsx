@@ -6,7 +6,7 @@ import {toBase64} from "./crops";
 
 export type DosboxRef = {
     sendStrokes: (strokes: string[]) => Promise<void>,
-    watchForImage: (image: WatchImage, interval?: number) => Promise<void>
+    watchForImage: (image: WatchImage, abortSignal?: AbortSignal, interval?: number) => Promise<void>
     hasImage: (image: WatchImage) => boolean
 }
 
@@ -92,11 +92,11 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
         return screenshot === image.imageData
     }
 
-    const watchForImage = async function (image: WatchImage, interval = 64) {
+    const watchForImage = async function (image: WatchImage, abortSignal: AbortSignal, interval = 64) {
         let matched = false
         while (!matched) {
             await sleep(interval)
-            matched = hasImage(image)
+            matched = hasImage(image) || (abortSignal && abortSignal.aborted)
         }
     }
 
@@ -121,6 +121,10 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
         <div>
             {/* language=CSS */}
             <style jsx>{`
+                .dosbox-container {
+                    height: 480px;
+                }
+                
                 canvas {
                     outline: none !important;
                 }
@@ -144,6 +148,7 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
                 <canvas ref={canvasRef} tabIndex={0} onClick={() => canvasRef.current.focus()}/>
             </div>
             <img src="fullscreen.svg" onClick={() => dosapp.current.fullscreen()} className="full-screen"/>
+            <br/><br/>
             <ScreenshotTool sourceCanvas={canvasRef}/>
         </div>
     );

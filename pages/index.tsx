@@ -1,10 +1,19 @@
 import Dosbox, {DosboxRef} from "../components/dosbox";
 import {useEffect, useRef} from "react";
-import {gameNamePbemCursorOff, gameNamePbemCursorOn, nameEric, savePbem} from '../components/crops';
+import {gameNamePbemCursorOff, gameNamePbemCursorOn, nameEric, pickLocation, savePbem} from '../components/crops';
 import SiteLayout from "../components/SiteLayout";
+import {useRouter} from "next/router";
+import hri from 'human-readable-ids';
 
 export default function Home() {
     const dosref = useRef<DosboxRef>(null);
+    const router = useRouter();
+
+    const abortController = useRef(typeof window !== 'undefined'
+        ? new AbortController()
+        : {abort: () => undefined, signal: null}
+    );
+    const gameId = router.query.g
 
     async function onClickNew() {
         // P (hits Print to close the menu if open, nop if menu is not open)
@@ -15,24 +24,54 @@ export default function Home() {
         // O (OK)
         // M (play over modem)
         // O (OK)
-        await dosref.current.sendStrokes([':p', 'alt', ':fnuomo']);
-        await dosref.current.watchForImage(nameEric)
-        await dosref.current.sendStrokes(['enter', ':foo', 'enter']);
+        const dos = dosref.current;
+        await dos.sendStrokes([':p', 'alt', ':fnuomo']);
+        await dos.watchForImage(nameEric)
+        await dos.sendStrokes(['enter', ':foo', 'enter']);
     }
 
     const syncSaves = async function () {
-        await dosref.current.watchForImage(savePbem)
-        if (!dosref.current.hasImage(gameNamePbemCursorOff) && !dosref.current.hasImage(gameNamePbemCursorOn)) {
-            // type filename, since it's not filled in already
-            await dosref.current.sendStrokes([':game'])
+        console.log(`Starting save sync detector with gameId ${gameId}!`)
+        const dos = dosref.current;
+        const abortSignal = abortController.current.signal
+        await dos.watchForImage(savePbem, abortSignal)
+        if (abortSignal.aborted) {
+            console.log(`Aborting save sync detector with gameId ${gameId}!`)
+            return;
         }
-        await dosref.current.sendStrokes(['enter', 'enter', ':p']);
+        if (!dos.hasImage(gameNamePbemCursorOff) && !dos.hasImage(gameNamePbemCursorOn)) {
+            // type filename, since it's not filled in already
+            await dos.sendStrokes([':game'])
+        }
+        await dos.sendStrokes(['enter', 'enter', ':p']);
         await syncSaves()
+    }
+
+    const detectNewGame = async function () {
+        console.log(`Starting new game detector with gameId ${gameId}!`)
+        const dos = dosref.current;
+        const abortSignal = abortController.current.signal
+        await dos.watchForImage(pickLocation, abortSignal)
+        if (abortSignal.aborted) {
+            console.log(`Aborting new game detector with gameId ${gameId}!`)
+            return;
+        }
+        await dos.sendStrokes([":m", "enter"])
+        console.log(`Detected new game, routing...`)
+
+        await router.push(`/?g=${hri.hri.random()}`)
     }
 
     useEffect(() => {
         syncSaves().catch(console.error)
-    }, []);
+        detectNewGame().catch(console.error)
+
+        return () => {
+            console.log('Aborting current waiters...')
+            abortController.current.abort()
+            abortController.current = new AbortController();
+        }
+    }, [router]);
 
     return (
         <SiteLayout>
