@@ -103,6 +103,8 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
     useImperativeHandle(ref, () => ({sendStrokes, watchForImage, hasImage}))
 
     useEffect(() => {
+        canvasRef.current.focus(); // so it receives keyboard events
+
         setup(canvasRef.current).catch((error) => {
             console.error(error)
             setError(true)
@@ -117,17 +119,31 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
 
     return isError ? <span style={{color: "red"}}>Error!</span> : (
         <div>
+            {/* language=CSS */}
             <style jsx>{`
                 canvas {
                     outline: none !important;
                 }
+
+                .full-screen {
+                    float: right;
+                    width: 48px;
+                    margin-top: 15px;
+                    padding: 5px;
+                    transition: 150ms filter linear;
+                }
+                
+                .full-screen:hover {
+                    filter: invert(1);
+                }
+
             `}</style>
             {/* The dosbox-container keeps dosbox.js from messing up the DOM in a way that breaks React unloading the component.*/}
             <div className="dosbox-container">
                 {/* See https://github.com/caiiiycuk/js-dos/issues/94#issuecomment-686199565 */}
-                <canvas ref={canvasRef} tabIndex={0} onClick={event => (event.target as HTMLCanvasElement).focus()}/>
+                <canvas ref={canvasRef} tabIndex={0} onClick={() => canvasRef.current.focus()}/>
             </div>
-            <button type="button" onClick={() => dosapp.current.fullscreen()}>Fullscreen</button>
+            <img src="fullscreen.svg" onClick={() => dosapp.current.fullscreen()} className="full-screen"/>
             <ScreenshotTool sourceCanvas={canvasRef}/>
         </div>
     );

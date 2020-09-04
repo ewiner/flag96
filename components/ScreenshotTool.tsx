@@ -69,14 +69,25 @@ const ScreenshotTool = (props: Props) => {
     }, [sx, sy, sw, sh, screenshot])
 
     return (
-        <fieldset>
-            <legend onClick={() => setVisible(v => !v)}>Analyze Screenshot</legend>
-            {!visible ? null : <>
+        <>
+            <style jsx>{`
+                .capture-tool {
+                    background: gray;
+                    padding: 5px;
+                    width: 700px;
+                    position: relative;
+                    left: -200px;
+                    margin:24px;
+                }
+            `}</style>
+            <button type="button" onClick={() => setVisible(v => !v)}>Screencap Tool</button>
+            {!visible ? null : <div className="capture-tool">
+                <h3>Analyze Screenshot</h3>
                 <button type="button" onClick={onClickScreenshot}>Capture</button>
-                {" "}
+                <br />
                 {editors.map(([name, value, setter]) =>
                     <label key={name}>
-                        {name} <input type="number" value={value} onChange={evt => setter(evt.target.valueAsNumber)}/>
+                        {name}&nbsp;&nbsp;<input type="number" value={value} onChange={evt => setter(evt.target.valueAsNumber)}/><br/>
                     </label>)}{" "}
                 <button type="reset" onClick={resetEditors}>Reset</button>
                 {" "}
@@ -86,8 +97,8 @@ const ScreenshotTool = (props: Props) => {
                 <a href={screenshot.dataUrl} download={`ctf-screenshot-${Date.now()}.png`}>
                     <canvas ref={canvasRef} width={sw} height={sh}/>
                 </a>
-            </>}
-        </fieldset>
+            </div>}
+        </>
     );
 }
 

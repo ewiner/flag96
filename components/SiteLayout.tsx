@@ -28,6 +28,7 @@ export default function SiteLayout(props) {
                     text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
                     padding-left: 24px;
                     padding-top: 24px;
+                    user-select: none;
                 }
                 
                 .title {
@@ -50,6 +51,12 @@ export default function SiteLayout(props) {
                     left: 35px;
                     top: 50px;
                     width: max-content;
+                    user-select: text;
+                    transition: opacity 150ms ease;
+                }
+                
+                .popup-close {
+                    text-align: right;
                 }
                 
                 .speech-bubble {
@@ -119,6 +126,8 @@ export default function SiteLayout(props) {
             <style jsx>{`
                 .what .popup {
                     visibility: ${whatOpen ? "visible" : "hidden"};
+                    opacity: ${whatOpen ? "100" : "0"};
+                    transition: ${whatOpen ? "" : "visibility 0s 150ms, "} opacity 150ms linear;
                  }
             `}</style>
             <Head>
@@ -133,6 +142,9 @@ export default function SiteLayout(props) {
                             <span onClick={() => setWhatOpen(o => !o)}>what is this?</span>
                             <span className="popup"><div className="speech-bubble">
                                 popup text TBD!
+                                <div className="popup-close">
+                                    <a role="button" href="#" onClick={e => {e.preventDefault(); setWhatOpen(false);}}>Close</a>
+                                </div>
                             </div></span>
                         </span>
                         {/* TODO: use a font instead of an img, so the underline works */}
