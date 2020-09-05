@@ -109,6 +109,7 @@ export default function SiteLayout(props) {
                     position: relative;
                     height: 100%;
                     width: 100%;
+                    min-width: 1025px;
                     min-height: 800px;
                 }
                 
@@ -126,7 +127,7 @@ export default function SiteLayout(props) {
             <style jsx>{`
                 .what .popup {
                     visibility: ${whatOpen ? "visible" : "hidden"};
-                    opacity: ${whatOpen ? "100" : "0"};
+                    opacity: ${whatOpen ? "1" : "0"};
                     transition: ${whatOpen ? "" : "visibility 0s 150ms, "} opacity 150ms linear;
                  }
             `}</style>
