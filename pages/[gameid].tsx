@@ -4,11 +4,12 @@ import {gameNamePbemCursorOff, gameNamePbemCursorOn, pickLocation, savePbem} fro
 import SiteLayout from "../components/SiteLayout";
 import {useRouter} from "next/router";
 import hri from 'human-readable-ids';
+import Popup, {PopupType} from "../components/Popup";
 
 export default function Home() {
     const dosref = useRef<DosboxRef>(null);
     const router = useRouter();
-    const [urlPopup, setUrlPopup] = useState({popped: false, type: null});
+    const [urlPopup, setUrlPopup] = useState({popkey: 0, type: null});
 
     const abortController = useRef(typeof window !== 'undefined'
         ? new AbortController()
@@ -17,6 +18,8 @@ export default function Home() {
 
     // "game" is the default (thanks to next.config.js)
     const gameid = router.query.gameid === "game" ? undefined : router.query.gameid as string
+
+    const popPopup = (type: PopupType) => setUrlPopup(p => ({popkey: p.popkey + 1, type}))
 
     const syncSaves = async function () {
         if (!gameid) return
@@ -35,7 +38,7 @@ export default function Home() {
         }
         await dos.sendStrokes(['enter', 'enter', ':p']);
         // todo: upload save
-        setUrlPopup({popped: true, type: "saved"})
+        popPopup(PopupType.Saved)
         await syncSaves()
     }
 
@@ -48,11 +51,11 @@ export default function Home() {
             console.log(`Aborting new game detector with gameId ${gameid}!`)
             return;
         }
+        popPopup(PopupType.NewGame)
         await dos.sendStrokes([":m", "enter"])
         console.log(`Detected new game, routing...`)
 
         await router.push('/[gameid]', `/${hri.hri.random()}`, {shallow: true})
-        setUrlPopup({popped: true, type: "newgame"})
     }
 
     useEffect(() => {
@@ -66,102 +69,9 @@ export default function Home() {
         }
     }, [router]);
 
-    useEffect(() => {
-        if (urlPopup.popped) {
-            setTimeout(() => setUrlPopup(p => ({popped: false, type: p.type})), 16)
-        }
-    }, [urlPopup])
-
-    const popupContents = () => {
-        switch (urlPopup.type) {
-            case "saved":
-                let currentUrl = "the URL";
-                if (global.window !== undefined) {
-                    currentUrl = window.location.href;
-                }
-                return <span>
-                    <span style={{
-                        transform: "scaleX(-1)",
-                        display: "inline-block"
-                    }}>⤴</span> Send {currentUrl} to your opponent!
-                </span>
-            case "newgame":
-                return <span>After your turn, send this URL to your opponent!</span>
-            default:
-                return null;
-        }
-    }
-
-    const popupDuration = () => {
-        switch (urlPopup.type) {
-            case "saved":
-                return 30;
-            case "newgame":
-                return 3;
-            default:
-                return 3;
-        }
-    }
-
     return (
         <>
-            {/* language=CSS */}
-            <style jsx>{`
-                .popup {
-                    position: absolute;
-                    z-index: 101;
-                    top: 32px;
-                    left: 80px;
-                    max-width: 880px;
-                    color: black;
-                    font-family: monospace;
-                    font-size: xx-large;
-                }
-
-                .speech-bubble {
-                    position: relative;
-                    background: #ffffff;
-                    border-radius: .4em;
-                    padding: 15px;
-                }
-
-                .speech-bubble:after {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 20%;
-                    width: 0;
-                    height: 0;
-                    border: 20px solid transparent;
-                    border-bottom-color: #ffffff;
-                    border-top: 0;
-                    border-left: 0;
-                    margin-left: -10px;
-                    margin-top: -20px;
-                }
-
-                .popup.unpopped {
-                    opacity: 0;
-                    visibility: hidden;
-                }
-
-                .popup.popped {
-                    opacity: 1;
-                    visibility: visible;
-                }
-
-            `}</style>
-            {/* language=CSS */}
-            <style>{`                
-                .popup.unpopped {
-                    transition: visibility 0s ${popupDuration() + 3}s, opacity 3s ease-out ${popupDuration()}s;
-                }
-            `}</style>
-            <div className={`popup ${urlPopup.popped ? "popped" : "unpopped"}`}>
-                <div className="speech-bubble">
-                    {popupContents()}
-                </div>
-            </div>
+            <Popup {...urlPopup}/>
             <SiteLayout>
                 <Dosbox ref={dosref} zip="/capflag5.zip" exe="capflag.exe"/>
             </SiteLayout>
