@@ -12,7 +12,7 @@ type Props = {
 
 export default function Popup(props: Props) {
     const {popkey, type} = props
-    const lastPopkey = useRef(null);
+    const lastPopkey = useRef(popkey);
     const [popped, setPopped] = useState(false);
 
     useEffect(() => {
