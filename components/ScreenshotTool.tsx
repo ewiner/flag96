@@ -1,5 +1,5 @@
 import React, {Dispatch, MutableRefObject, SetStateAction, useEffect, useRef, useState} from "react";
-import {toBase64} from "./crops";
+import {imgToBase64} from "./crops";
 
 type Props = {
     sourceCanvas: MutableRefObject<HTMLCanvasElement>
@@ -43,7 +43,7 @@ const ScreenshotTool = (props: Props) => {
     const copyImageData = () => {
         const ctx = canvasRef.current.getContext('2d')
         const imageData = ctx.getImageData(0, 0, sw, sh)
-        const jsData = {sx, sy, sw, sh, imageData: toBase64(imageData)}
+        const jsData = {sx, sy, sw, sh, imageData: imgToBase64(imageData)}
         navigator.clipboard.writeText(JSON.stringify(jsData))
     }
 

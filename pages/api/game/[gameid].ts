@@ -27,25 +27,31 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             case "GET":
                 const getQuery = query.Map(
                     Paginate(matchGameid),
-                    Lambda("X", Select(["data", "gamedata"], Get(Var("X"))))
+                    Lambda("X", Select("data", Get(Var("X"))))
                 )
 
                 const dbs: any = await client.query(getQuery)
-                let maybeGamedata = dbs.data;
-                if (maybeGamedata.length === 0) {
+                const maybeData = dbs.data;
+                if (maybeData.length === 0) {
                     res.status(404).end()
+                } else if (maybeData.length > 1) {
+                    console.error(`Received ${maybeData.length} results instead of the expected 1.`)
+                    console.error(maybeData)
                 } else {
-                    let gamedata = maybeGamedata[0];
-                    res.status(200).json({gamedata})
+                    const data = maybeData[0];
+                    const {gamedata, userid} = data;
+                    res.status(200).json({gamedata, userid})
                 }
                 break;
+            case "POST":
             case "PUT":
+                const gamedata = req.method == "PUT" ? req.body.gamedata : null
                 const useragent = new UAParser(req.headers['user-agent']).getResult()
                 const data = {
                     gameid,
-                    gamedata: req.body.gamedata,
+                    gamedata,
+                    useragent,
                     userid: req.body.userid,
-                    useragent: useragent,
                     ip: req.connection.remoteAddress
                 }
 

@@ -2,11 +2,14 @@ import React, {useEffect, useImperativeHandle, useRef, useState} from "react";
 import type {DosFactory, DosRuntime} from 'js-dos';
 import {DosCommandInterface} from "js-dos/dist/typescript/js-dos-ci";
 import ScreenshotTool from "./ScreenshotTool";
-import {toBase64} from "./crops";
+import {imgToBase64} from "./crops";
+import {openDB} from "idb";
 
 export type DosboxRef = {
     sendStrokes: (strokes: string[]) => Promise<void>,
     watchForImage: (image: WatchImage, abortSignal?: AbortSignal, interval?: number) => Promise<void>
+    writeFile: (path: string, contents: Uint8Array) => Promise<void>,
+    getFile: (path: String) => Promise<Uint8Array>
     hasImage: (image: WatchImage) => boolean
 }
 
@@ -14,6 +17,7 @@ type DosboxProps = {
     variant?: string,
     zip: string,
     exe: string
+    postStart?: string[]
 }
 
 type WatchImage = {
@@ -44,7 +48,8 @@ const toKeyCodes = (strokes: string[]) => {
             "right": 39,
             "down": 40,
             "alt": 18,
-            "enter": 13
+            "enter": 13,
+            "esc": 27
         };
         const manualCode: number = manualMap[command.toLowerCase()]
         if (manualCode) return [manualCode];
@@ -53,26 +58,13 @@ const toKeyCodes = (strokes: string[]) => {
 }
 
 const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
-    const {variant = "wdosbox"} = props;
+    const {variant = "wdosbox", postStart = []} = props;
 
     const dosapp = useRef<DosCommandInterface>(null);
+    const runtimeRef = useRef<DosRuntime>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const [isError, setError] = useState(false)
-
-    const setup = async function (canvas: HTMLCanvasElement) {
-        await import('js-dos'); // attaches `window.Dos`
-        const Dos = (window as any).Dos as DosFactory;
-        const options = {
-            wdosboxUrl: `/dosbox/${variant}.js`,
-            autolock: true,
-            keyboardListeningElement: canvas
-        };
-        const runtime = await Dos(canvas, options);
-        await runtime.fs.extract(props.zip, "/game");
-        await runtime.fs.chdir("/game");
-        dosapp.current = await runtime.main(["-c", "cd game", "-c", props.exe]);
-    };
 
     const sendStrokes = async function (strokes: string[]) {
         const keycodes = toKeyCodes(strokes)
@@ -86,9 +78,27 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
         }
     }
 
+    const setup = async function (canvas: HTMLCanvasElement) {
+        const windowTitle = document.title
+        await import('js-dos'); // attaches `window.Dos`
+        const Dos = (window as any).Dos as DosFactory;
+        const options = {
+            wdosboxUrl: `/dosbox/${variant}.js`,
+            autolock: true,
+            keyboardListeningElement: canvas
+        };
+        const runtime = await Dos(canvas, options);
+        runtimeRef.current = runtime;
+        await runtime.fs.extract(props.zip, "/game");
+        await runtime.fs.chdir("/game");
+        dosapp.current = await runtime.main(["-c", "cd game", "-c", props.exe]);
+        document.title = windowTitle // since DosBox overwrites this
+        await sendStrokes(postStart)
+    };
+
     const hasImage = function (image: WatchImage) {
         const canvasCtx = canvasRef.current.getContext('2d')
-        const screenshot = toBase64(canvasCtx.getImageData(image.sx, image.sy, image.sw, image.sh))
+        const screenshot = imgToBase64(canvasCtx.getImageData(image.sx, image.sy, image.sw, image.sh))
         return screenshot === image.imageData
     }
 
@@ -100,7 +110,29 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
         }
     }
 
-    useImperativeHandle(ref, () => ({sendStrokes, watchForImage, hasImage}))
+    const writeFile = async function (path: string, contents: Uint8Array) {
+        const fs = runtimeRef.current.fs
+        const emscriptenFs = (fs as any).fs
+        if (emscriptenFs.analyzePath(path).exists) {
+            emscriptenFs.unlink(path)
+        }
+        fs.createFile(path, contents)
+    }
+
+    const getFile = async function (path: string) {
+        const fs = runtimeRef.current.fs
+        await (fs as any).syncFs()
+
+        const idb = await openDB('/game', 21, {
+            upgrade(db) {
+                db.createObjectStore('FILE_DATA');
+            },
+        })
+        const file = await idb.get('FILE_DATA', path)
+        return file.contents
+    }
+
+    useImperativeHandle(ref, () => ({sendStrokes, watchForImage, hasImage, writeFile, getFile}))
 
     useEffect(() => {
         canvasRef.current.focus(); // so it receives keyboard events
@@ -124,7 +156,7 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
                 .dosbox-container {
                     height: 480px;
                 }
-                
+
                 canvas {
                     outline: none !important;
                 }
@@ -136,13 +168,13 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
                     padding: 5px;
                     transition: 150ms filter linear;
                 }
-                
+
                 .full-screen:hover {
                     filter: invert(1);
                 }
 
             `}</style>
-            {/* The dosbox-container keeps dosbox.js from messing up the DOM in a way that breaks React unloading the component.*/}
+            {/* The dosbox-container keeps dosbox.js from messing up the DOM in a way that breaks React unloading the component. */}
             <div className="dosbox-container">
                 {/* See https://github.com/caiiiycuk/js-dos/issues/94#issuecomment-686199565 */}
                 <canvas ref={canvasRef} tabIndex={0} onClick={() => canvasRef.current.focus()}/>
