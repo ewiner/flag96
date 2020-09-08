@@ -29,9 +29,9 @@ const fetcher = async (url) => {
 }
 
 async function getUserid() {
-    const existingId = await idbGet("userid") as String
+    const existingId = await idbGet("userid") as string
     if (existingId) return existingId
-    const newId = uuidv4() as String
+    const newId = uuidv4() as string
     await idbSet("userid", newId)
     return newId
 }
@@ -64,7 +64,7 @@ const hasNoMouseOrTrackpad = inBrowser && window.matchMedia("(any-hover: none)")
 export default function Home() {
     const dosref = useRef<DosboxRef>(null);
     const router = useRouter();
-    const [userid, setUserid] = useState(null);
+    const [userid, setUserid] = useState<string>(null);
 
     // "game" is the default (thanks to next.config.js)
     const gameid = router.query.gameid === "game" ? undefined : router.query.gameid as string

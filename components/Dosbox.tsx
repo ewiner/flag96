@@ -5,6 +5,8 @@ import ScreenshotTool from "./ScreenshotTool";
 import {imgToBase64} from "./crops";
 import {openDB} from "idb";
 
+const showScreenshotTool = false
+
 export type DosboxRef = {
     sendStrokes: (strokes: string[]) => Promise<void>,
     watchForImage: (image: WatchImage, abortSignal?: AbortSignal, interval?: number) => Promise<void>
@@ -181,7 +183,7 @@ const Dosbox = React.forwardRef<DosboxRef, DosboxProps>((props, ref) => {
             </div>
             <img src="fullscreen.svg" onClick={() => dosapp.current.fullscreen()} className="full-screen"/>
             <br/><br/>
-            <ScreenshotTool sourceCanvas={canvasRef}/>
+            {showScreenshotTool ? <ScreenshotTool sourceCanvas={canvasRef}/> : null}
         </div>
     );
 });

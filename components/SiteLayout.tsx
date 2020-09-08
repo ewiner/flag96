@@ -1,23 +1,34 @@
 import Head from 'next/head'
-import {useState} from "react";
+import {useEffect, useState} from "react";
+import {get as idbGet, set as idbSet} from 'idb-keyval'
 
 export default function SiteLayout(props) {
     const {children} = props
     const [whatOpen, setWhatOpen] = useState(false)
 
+    useEffect(() => {
+        (async () => {
+            const visited = await idbGet("visited") as boolean
+            if (!visited) {
+                setWhatOpen(true)
+                await idbSet("visited", true)
+            }
+        })().catch(console.error)
+    }, [])
+
     return (
         <>
             {/* language=CSS */}
-            <style jsx global>{`                
+            <style jsx global>{`
                 #__next {
                     display: flex;
                     flex-flow: column;
                     height: 100%;
                 }
-                
+
                 html, body {
-                  height: 100%;
-                  margin: 0;
+                    height: 100%;
+                    margin: 0;
                 }
             `}</style>
             {/* language=CSS */}
@@ -30,12 +41,12 @@ export default function SiteLayout(props) {
                     padding-top: 24px;
                     user-select: none;
                 }
-                
+
                 .title {
                     font-size: 42px;
                     font-weight: bold;
                 }
-                
+
                 .what {
                     margin-left: 24px;
                     margin-right: 20px;
@@ -43,22 +54,22 @@ export default function SiteLayout(props) {
                     text-decoration: underline;
                     font-style: italic;
                     cursor: pointer;
-                    position: relative;
                 }
-                
+
                 .what .popup {
                     position: absolute;
-                    left: 35px;
-                    top: 50px;
-                    width: max-content;
+                    left: 587px;
+                    top: 91px;
+                    z-index: 101;
+                    width: 413px;
                     user-select: text;
                     transition: opacity 150ms ease;
                 }
-                
+
                 .popup-close {
                     text-align: right;
                 }
-                
+
                 .speech-bubble {
                     position: relative;
                     background: #ffffff;
@@ -70,8 +81,9 @@ export default function SiteLayout(props) {
                     padding: 20px;
                     font-size: large;
                     cursor: auto;
+                    box-shadow: -10px 10px black;
                 }
-                
+
                 .speech-bubble:after {
                     content: '';
                     position: absolute;
@@ -86,11 +98,11 @@ export default function SiteLayout(props) {
                     margin-left: -10px;
                     margin-top: -20px;
                 }
-                
+
                 main {
                     flex: 1 1 auto;
                 }
-                
+
                 footer {
                     position: fixed;
                     bottom: 12px;
@@ -100,7 +112,7 @@ export default function SiteLayout(props) {
                     font-style: italic;
                     text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
                 }
-                
+
                 .desktop {
                     background-image: url("pc4.jpg");
                     background-size: 2150px auto;
@@ -112,7 +124,7 @@ export default function SiteLayout(props) {
                     min-width: 1025px;
                     min-height: 800px;
                 }
-                
+
                 .content-box {
                     position: absolute;
                     top: 230px;
@@ -142,14 +154,22 @@ export default function SiteLayout(props) {
                         <span className="what">
                             <span onClick={() => setWhatOpen(o => !o)}>what is this?</span>
                             <span className="popup"><div className="speech-bubble">
-                                popup text TBD!
+                                <h2>what is this?</h2>
+                                <p><b>Capture the Flag</b> is a turn-based strategy computer game from the 1990s, made
+                                    by <a href="http://www.carrsoft.com/" target="_blank">Carr Software</a>.</p>
+                                <p>This version lets you play the original game online in your browser, either against the
+                                    computer or multiplayer over the internet.</p>
                                 <div className="popup-close">
-                                    <a role="button" href="#" onClick={e => {e.preventDefault(); setWhatOpen(false);}}>Close</a>
+                                    <a role="button" href="#" onClick={e => {
+                                        e.preventDefault();
+                                        setWhatOpen(false);
+                                    }}>Close</a>
                                 </div>
                             </div></span>
                         </span>
                         {/* TODO: use a font instead of an img, so the underline works */}
-                        <a href="https://github.com/ewiner/flag96" className="ghlink" target="_blank"><img alt="Github Link" height={16} src="/GitHub-Mark-Light-32px.png" /></a>
+                        <a href="https://github.com/ewiner/flag96" className="ghlink" target="_blank"><img
+                            alt="Github Link" height={16} src="/GitHub-Mark-Light-32px.png"/></a>
                     </header>
                     <div className="content-box">
                         {children}
@@ -157,7 +177,8 @@ export default function SiteLayout(props) {
                 </div>
             </main>
             <footer>
-                <a href="https://www.reddit.com/r/retrobattlestations/comments/cycj3t/733mhz_piii_compaq_presario_5000/" target="_blank">image source</a>{" "}
+                <a href="https://www.reddit.com/r/retrobattlestations/comments/cycj3t/733mhz_piii_compaq_presario_5000/"
+                   target="_blank">image source</a>{" "}
                 <a href="http://www.carrsoft.com/ctf/capture_the_flag_game.html" target="_blank">game source</a>
             </footer>
         </>
