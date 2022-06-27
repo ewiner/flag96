@@ -157,7 +157,7 @@ export default function SiteLayout(props) {
                                 <h2>what is this?</h2>
                                 <p><b>Capture the Flag</b> is a turn-based strategy computer game from the 1990s, made
                                     by <a href="http://www.carrsoft.com/" target="_blank">Carr Software</a>.</p>
-                                <p>This version lets you play the original game online in your browser, either against the
+                                <p>This website lets you play the original game online in your browser, either against the
                                     computer or multiplayer over the internet.</p>
                                 <div className="popup-close">
                                     <a role="button" href="#" onClick={e => {

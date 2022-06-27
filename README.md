@@ -1,12 +1,14 @@
 # Capture the Flag '96 Online  
   
 Hosted at https://flag96.winer.ly/.
-  
+
+![Flag96 Screenshot](public/screenshot.png)
+
 ### What is this?  
   
 **Capture the Flag** is a turn-based strategy computer game from the 1990s, made by [Carr Software](http://www.carrsoft.com/).  
   
-This version lets you play the original game online in your browser, either against the computer or multiplayer over the internet.  
+This website lets you play the original game online in your browser, either against the computer or multiplayer over the internet.  
   
 ### Why?  
   
